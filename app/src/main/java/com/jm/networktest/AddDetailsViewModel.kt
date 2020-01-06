@@ -1,20 +1,24 @@
 package com.jm.networktest
 
 import android.util.Log
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import io.reactivex.Flowable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
 
 class AddDetailsViewModel : ViewModel() {
-
+//    var liveLast = LiveData<Details>()
 
     protected val compositeDisposable = CompositeDisposable()
 
     private var dataBaseInstance: AppDataBase? = null
 
     var studentList = MutableLiveData<List<Details>>()
+
+    var lastDetails = Details(0,"none",0)
 
     fun setInstanceOfDb(dataBaseInstance: AppDataBase) {
         this.dataBaseInstance = dataBaseInstance
@@ -76,5 +80,18 @@ class AddDetailsViewModel : ViewModel() {
     fun getLastItem():Details {
         return studentList.value?.last()!!
     }
+
+    fun setDetails(details: Details){
+        lastDetails = details
+    }
+    fun getDetails(): Details{
+        return lastDetails
+    }
+//    fun retrieveLast(): LiveData<Details> {
+//        return liveLast
+//    }
+
+    fun setAllRecords():Flowable<Details> = dataBaseInstance?.studentDataDao()?.getLastRecord()!!
+
 
 }

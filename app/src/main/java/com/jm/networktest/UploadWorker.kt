@@ -4,17 +4,21 @@ import android.content.Context
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 
-class UploadWorker(appContext: Context, workerParameters: WorkerParameters, temp: TempDetails)
-    : Worker(appContext,workerParameters) {
+class UploadWorker(appContext: Context, workerParameters: WorkerParameters, temp: TempDetails) :
+    Worker(appContext, workerParameters) {
 
     private val dataBaseInstance = AppDataBase.getDatabaseInstance(appContext)
-    private val args = temp
     override fun doWork(): Result {
         return try {
-            dataBaseInstance.tempDataDao().insertTempData(args)
+            val arg = TempDetails(
+                inputData.getInt("id", 0),
+                inputData.getString("name"),
+                inputData.getInt("age", 0)
+            )
+            dataBaseInstance.tempDataDao().insertTempData(arg)
             println("resultStatus true")
             Result.success()
-        }catch (e: Exception){
+        } catch (e: Exception) {
             println("resultStatus false")
             Result.failure()
         }

@@ -8,11 +8,13 @@ import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.Toast
+import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.work.*
-import androidx.work.impl.constraints.NetworkState
-import com.jm.UploadWorkFactory
 import kotlinx.android.synthetic.main.activity_add_details.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
 class AddDetailsActivity : AppCompatActivity() {
@@ -25,51 +27,85 @@ class AddDetailsActivity : AppCompatActivity() {
 
         viewModel = ViewModelProviders.of(this).get(AddDetailsViewModel::class.java)
         val dataBaseInstance = AppDataBase.getDatabaseInstance(this)
+
+        CoroutineScope(Dispatchers.Default).launch {
+            viewModel?.setAllRecords()?.subscribe {
+                if (it!=null){
+                    viewModel?.setDetails(it)
+                    println("fullValueDepiction ${it.nameFUll}")
+                }
+            }
+        }
+//        viewModel?.setAllRecords()?.observe(this, Observer {
+//            if (it!=null){
+//                println("tryToConvey ${it.nameFUll}")
+//            }
+//        })
+
         viewModel?.setInstanceOfDb(dataBaseInstance)
 
-        btSubmit.setOnClickListener {
-            val temp = saveData()
-            if (isInternetAvailable(this)){
-                if (temp.nameFUll != "none") {
-                    dataBaseInstance.tempDataDao().insertTempData(temp)
-                    println("connectStatus-- true in")
-                }
-                println("connectStatus-- true out")
-            }else{
-                // provide custom configuration
-                val config = Configuration.Builder()
-                    .setMinimumLoggingLevel(android.util.Log.INFO)
-                    .setWorkerFactory(UploadWorkFactory(temp))
-                    .build()
-                //initialize WorkManager
-                WorkManager.initialize(this, config)
-                val constraints = Constraints.Builder().setRequiredNetworkType(NetworkType.UNMETERED).build()
-                val uploadWork = OneTimeWorkRequest.Builder(UploadWorker::class.java)
-                                                    .setConstraints(constraints)
-                                                    .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 20, TimeUnit.SECONDS)
-                                                    .build()
+        CoroutineScope(Dispatchers.Default).launch {
+            viewModel?.getStudentData()
+        }
 
-                WorkManager.getInstance(this).enqueue(uploadWork)
-                println("connectStatus-- false")
+        CoroutineScope(Dispatchers.Default).launch {
+//            println("valueRetrieved ${viewModel?.getLast()?.nameFUll}")
+        }
+
+        viewModel?.studentList?.observe(this, Observer {
+            viewModel?.setDetails(it.last())
+            println("printAvailable ${it.last().nameFUll}")
+        })
+
+        btSubmit.setOnClickListener {
+            //            val temp = saveData()
+            if (isInternetAvailable(this)) {
+                val initial = saveData()
+                val temp = TempDetails(initial.userID, initial.nameFUll, initial.ageTotal)
+                dataBaseInstance.tempDataDao().insertTempData(temp)
+                println("connectStatus-- true in")
+
+                println("connectStatus-- true out ${initial.nameFUll}")
+            } else {
+                val args = saveData()
+                if (args.nameFUll != "none") {
+                    val constraints =
+                        Constraints.Builder().setRequiredNetworkType(NetworkType.UNMETERED).build()
+                    val studentDetails = workDataOf(
+                        "id" to args.userID,
+                        "name" to args.nameFUll,
+                        "age" to args.ageTotal
+                    )
+                    val uploadWork = OneTimeWorkRequest.Builder(UploadWorker::class.java)
+                        .setConstraints(constraints)
+                        .setInputData(studentDetails)
+                        .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 20, TimeUnit.SECONDS)
+                        .build()
+
+                    WorkManager.getInstance(this).enqueue(uploadWork)
+                    println("connectStatus-- false")
+                }
             }
         }
     }
 
-    private fun saveData(): TempDetails{
-        lateinit var pass:TempDetails
+    private fun saveData(): Details {
+        lateinit var pass: Details
         val name = etName.text.trim().toString()
         val age = etAge.text.trim().toString()
         etName.setText("")
         etAge.setText("")
         if (name.isBlank() || age.isBlank()) {
             Toast.makeText(this, "Please enter valid details", Toast.LENGTH_LONG).show()
-            pass = TempDetails(nameFUll = "none", ageTotal = 0)
+            pass = Details(nameFUll = "none", ageTotal = 0)
         } else {
-
             val person = Details(nameFUll = name, ageTotal = age.toInt())
-            pass = TempDetails(nameFUll = name, ageTotal = age.toInt())
             viewModel?.saveDataIntoDb(person)
             Toast.makeText(this, "Details saved", Toast.LENGTH_LONG).show()
+            CoroutineScope(Dispatchers.Default).launch {
+//                println("valueRetrieved ${viewModel?.getLast()?.nameFUll}")
+            }
+            pass = Details(nameFUll = "none", ageTotal = 0)
         }
         return pass
     }

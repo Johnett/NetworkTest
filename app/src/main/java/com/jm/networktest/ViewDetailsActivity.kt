@@ -24,16 +24,18 @@ class ViewDetailsActivity : AppCompatActivity() {
 
 //        val student = viewModel?.getLastDetails()
 
-        viewModel?.studentList?.observe(this, Observer {
+        viewModel?.tempList?.observe(this, Observer {
             if (!it.isNullOrEmpty()){
                 val student = it.last()
                 tvId.text = student.userID.toString()
                 tvName.text = student.nameFUll
                 tvAge.text = student.ageTotal.toString()
+                println("testDataInput ${student.userID.toString()}")
             }else{
                 tvId.text = "none"
                 tvName.text = "none"
                 tvAge.text = "none"
+                println("testDataInput none")
             }
         })
 

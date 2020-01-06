@@ -14,6 +14,8 @@ class ViewDetailsViewModel : ViewModel() {
 
     var studentList = MutableLiveData<List<Details>>()
 
+    var tempList = MutableLiveData<List<TempDetails>>()
+
     var studentObj = Details(0, "none", 0)
 
     fun setInstanceOfDb(dataBaseInstance: AppDataBase) {
@@ -35,15 +37,15 @@ class ViewDetailsViewModel : ViewModel() {
 
     fun getStudentData() {
 
-        dataBaseInstance?.studentDataDao()?.getAllRecords()
+        dataBaseInstance?.tempDataDao()?.getAllRecords()
             ?.subscribeOn(Schedulers.io())
             ?.observeOn(AndroidSchedulers.mainThread())
             ?.subscribe({
                 if (!it.isNullOrEmpty()) {
-                    studentList.postValue(it)
+                    tempList.postValue(it)
                     println("headstatus some value")
                 } else {
-                    studentList.postValue(listOf())
+                    tempList.postValue(listOf())
                     println("headstatus no value")
                 }
                 it?.forEach {

@@ -1,4 +1,4 @@
-package com.jm
+package com.jm.networktest
 
 import android.content.Context
 import androidx.work.WorkerFactory
